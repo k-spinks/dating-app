@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/context/auth-context";
+
 import Navbar from "@/components/Navbar";
+import { AuthProvider } from "@/context/auth-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StreamMatch",
-  description: "Find your perfect match",
+  title: "StreamMatch - Find Your Perfect Match",
+  description:
+    "Connect with like-minded people through live streaming, meaningful conversations, and authentic connections on StreamMatch.",
 };
 
 export default function RootLayout({
