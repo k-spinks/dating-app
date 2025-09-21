@@ -3,7 +3,7 @@
 import { getCurrentUserProfile } from "@/lib/actions/profile";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { calculateAge } from "@/lib/actions/helpers/calculate-age";
+import { calculateAge } from "@/lib/helpers/calculate-age";
 
 export interface UserProfile {
   id: string;
