@@ -68,7 +68,7 @@ export default function PhotoUpload({
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         ) : (
           <svg
-            className="w-4 h-4"
+            className="w-4 h-4 hover:cursor-pointer"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
