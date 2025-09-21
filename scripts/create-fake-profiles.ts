@@ -1400,7 +1400,11 @@ async function createFakeProfiles() {
     const profile = fakeProfiles[i];
 
     try {
-      console.log(`\n📝 Creating profile ${i + 1}/10: ${profile.full_name}`);
+      console.log(
+        `\n📝 Creating profile ${i + 1}/${fakeProfiles.length + 1}: ${
+          profile.full_name
+        }`
+      );
 
       // 1. Check if auth user already exists
       const { data: existingAuthUsers } = await supabase.auth.admin.listUsers();
