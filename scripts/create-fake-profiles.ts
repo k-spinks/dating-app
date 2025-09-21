@@ -1530,5 +1530,5 @@ async function createFakeProfiles() {
   console.log("Some users are marked as online for testing");
 }
 
-// Run the script
+// Run the script npm run create-fake-profiles
 createFakeProfiles().catch(console.error);
