@@ -41,13 +41,13 @@ A real-time, fullstack dating application where users can create profiles, swipe
 - **Landing / Home Page**
   ![Landing Page](public/landing_page.png)
 
-  - **Landing / Home Page**
-    ![Profile Page](public/profile_page.png)
+- **Profile Page**
+  ![Profile Page](public/edit_profile.gif)
 
 - **Swipe Deck / Matching Flow**
   ![Swiping](public/swiping.gif)
 
 - **Chat / Messaging Screen**
-  ![Chat](public/chat.gif)
+  ![Chat](public/chatting.gif)
 
 ---

@@ -175,7 +175,7 @@ export default function ProfilePage() {
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                       Dating Preferences
                     </h3>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Age Range
@@ -190,7 +190,17 @@ export default function ProfilePage() {
                           Distance
                         </label>
                         <p className="text-gray-900 dark:text-white">
-                          Up to {profile.preferences.distance} km
+                          Up to {profile.preferences.distance} mi
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Gender Preference
+                        </label>
+                        <p className="text-gray-900 dark:text-white capitalize">
+                          {profile.preferences.gender_preference.length > 0
+                            ? profile.preferences.gender_preference.join(", ")
+                            : "No preference"}
                         </p>
                       </div>
                     </div>

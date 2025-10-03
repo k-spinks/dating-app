@@ -12,6 +12,7 @@ export default function EditProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"info" | "preferences">("info");
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -21,6 +22,11 @@ export default function EditProfilePage() {
     gender: "male" as "male" | "female" | "other",
     birthdate: "",
     avatar_url: "",
+    preferences: {
+      distance: 50,
+      age_range: { min: 25, max: 35 },
+      gender_preference: ["female"] as string[],
+    },
   });
 
   useEffect(() => {
@@ -35,6 +41,11 @@ export default function EditProfilePage() {
             gender: profileData.gender || "male",
             birthdate: profileData.birthdate || "",
             avatar_url: profileData.avatar_url || "",
+            preferences: profileData.preferences || {
+              distance: 50,
+              age_range: { min: 25, max: 35 },
+              gender_preference: ["female"],
+            },
           });
         }
       } catch (err) {
@@ -47,36 +58,63 @@ export default function EditProfilePage() {
     loadProfile();
   }, []);
 
-  async function handleFormSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    setSaving(true);
-    setError(null);
-
-    try {
-      const result = await updateUserProfile(formData);
-      if (result.success) {
-        router.push("/profile");
-      } else {
-        setError(result.error || "Failed to update profile.");
-      }
-    } catch (err) {
-      setError("Failed to update profile.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   function handleInputChange(
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) {
     const { name, value } = e.target;
+    if (name.startsWith("pref_")) {
+      const key = name.replace("pref_", "");
+      setFormData((prev) => ({
+        ...prev,
+        preferences: {
+          ...prev.preferences,
+          [key]: key === "distance" ? Number(value) : value,
+        },
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  }
+
+  function handleAgeRangeChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      preferences: {
+        ...prev.preferences,
+        age_range: { ...prev.preferences.age_range, [name]: Number(value) },
+      },
     }));
+  }
+
+  async function handleFormSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      const result = await updateUserProfile({
+        ...formData,
+        preferences: {
+          ...formData.preferences,
+          gender_preference: formData.preferences.gender_preference as (
+            | "male"
+            | "female"
+            | "other"
+          )[],
+        },
+      });
+      if (result.success) {
+        router.push("/profile");
+      } else {
+        setError(result.error || "Failed to update profile.");
+      }
+    } catch {
+      setError("Failed to update profile.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) {
@@ -104,152 +142,251 @@ export default function EditProfilePage() {
           </p>
         </header>
 
-        <div className="max-w-2xl mx-auto">
-          <form
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8"
-            onSubmit={handleFormSubmit}
-          >
-            <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                Profile Picture
-              </label>
-              <div className="flex items-center space-x-6">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full overflow-hidden">
-                    <img
-                      src={formData.avatar_url || "/default-avatar.png"}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
+        <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+          {/* Tabs */}
+          <div className="flex mb-6 border-b border-gray-200 dark:border-gray-700">
+            <button
+              className={`px-4 py-2 font-medium hover:cursor-pointer ${
+                activeTab === "info"
+                  ? "border-b-2 border-pink-500 text-pink-500"
+                  : "text-gray-500 dark:text-gray-400"
+              }`}
+              onClick={() => setActiveTab("info")}
+            >
+              User Info
+            </button>
+            <button
+              className={`ml-4 px-4 py-2 font-medium hover:cursor-pointer ${
+                activeTab === "preferences"
+                  ? "border-b-2 border-pink-500 text-pink-500"
+                  : "text-gray-500 dark:text-gray-400"
+              }`}
+              onClick={() => setActiveTab("preferences")}
+            >
+              Preferences
+            </button>
+          </div>
+
+          <form onSubmit={handleFormSubmit}>
+            {activeTab === "info" && (
+              <>
+                {/* Profile Picture */}
+                <div className="mb-8">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                    Profile Picture
+                  </label>
+                  <div className="flex items-center space-x-6">
+                    <div className="relative">
+                      <div className="w-24 h-24 rounded-full overflow-hidden">
+                        <img
+                          src={formData.avatar_url || "/default-avatar.png"}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <PhotoUpload
+                        onPhotoUploaded={(url) =>
+                          setFormData((prev) => ({ ...prev, avatar_url: url }))
+                        }
+                      />
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Upload a new profile picture
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        JPG, PNG or GIF. Max 5MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Basic info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      name="full_name"
+                      value={formData.full_name}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                     />
                   </div>
-                  <PhotoUpload
-                    onPhotoUploaded={(url) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        avatar_url: url,
-                      }));
-                    }}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Username *
+                    </label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Gender *
+                    </label>
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Birthday *
+                    </label>
+                    <input
+                      type="date"
+                      name="birthdate"
+                      value={formData.birthdate}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-8">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    About Me *
+                  </label>
+                  <textarea
+                    name="bio"
+                    value={formData.bio}
+                    onChange={handleInputChange}
+                    required
+                    rows={4}
+                    maxLength={500}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
+                    placeholder="Tell others about yourself..."
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {formData.bio.length}/500 characters
+                  </p>
+                </div>
+              </>
+            )}
+
+            {activeTab === "preferences" && (
+              <div className="space-y-6">
+                {/* Gender Preference Multi-select */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Gender Preference
+                  </label>
+                  <div className="flex space-x-2 ">
+                    {["male", "female", "other"].map((gender) => {
+                      const selected =
+                        formData.preferences.gender_preference.includes(gender);
+                      return (
+                        <button
+                          key={gender}
+                          type="button"
+                          onClick={() =>
+                            setFormData((prev) => {
+                              const current =
+                                prev.preferences.gender_preference;
+                              if (selected) {
+                                // Remove if already selected
+                                return {
+                                  ...prev,
+                                  preferences: {
+                                    ...prev.preferences,
+                                    gender_preference: current.filter(
+                                      (g) => g !== gender
+                                    ),
+                                  },
+                                };
+                              } else {
+                                // Add if not selected
+                                return {
+                                  ...prev,
+                                  preferences: {
+                                    ...prev.preferences,
+                                    gender_preference: [...current, gender],
+                                  },
+                                };
+                              }
+                            })
+                          }
+                          className={`px-4 py-2 rounded-lg border focus:outline-none transition-colors duration-200 text-sm font-medium hover:cursor-pointer ${
+                            selected
+                              ? "bg-pink-500 border-pink-500 text-white"
+                              : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                          }`}
+                        >
+                          {gender.charAt(0).toUpperCase() + gender.slice(1)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Age Range */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Age Min
+                    </label>
+                    <input
+                      type="number"
+                      name="min"
+                      value={formData.preferences.age_range.min}
+                      min={18}
+                      max={100}
+                      onChange={handleAgeRangeChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Age Max
+                    </label>
+                    <input
+                      type="number"
+                      name="max"
+                      value={formData.preferences.age_range.max}
+                      min={18}
+                      max={100}
+                      onChange={handleAgeRangeChange}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Max Distance */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Max Distance (miles)
+                  </label>
+                  <input
+                    type="number"
+                    name="pref_distance"
+                    value={formData.preferences.distance}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
                   />
                 </div>
-
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    Upload a new profile picture
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500">
-                    JPG, PNG or GIF. Max 5MB.
-                  </p>
-                </div>
               </div>
-            </div>
-
-            {/* Basic info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label
-                  htmlFor="full_name"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  id="full_name"
-                  name="full_name"
-                  value={formData.full_name}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter your full name"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="username"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Username *
-                </label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="Choose a username"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label
-                  htmlFor="gender"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Gender *
-                </label>
-                <select
-                  id="gender"
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="birthdate"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Birthday *
-                </label>
-                <input
-                  type="date"
-                  id="birthdate"
-                  name="birthdate"
-                  value={formData.birthdate}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div className="mb-8">
-              <label
-                htmlFor="bio"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-              >
-                About Me *
-              </label>
-              <textarea
-                id="bio"
-                name="bio"
-                value={formData.bio}
-                onChange={handleInputChange}
-                required
-                rows={4}
-                maxLength={500}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
-                placeholder="Tell others about yourself..."
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {formData.bio.length}/500 characters
-              </p>
-            </div>
-
-            {/* preferences */}
-            <div>{}</div>
+            )}
 
             {error && (
               <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
@@ -261,14 +398,14 @@ export default function EditProfilePage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-6 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+                className="px-6 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 hover:cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-6 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold rounded-lg hover:from-pink-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                className="px-6 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold rounded-lg hover:from-pink-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:cursor-pointer"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>

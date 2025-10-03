@@ -112,7 +112,7 @@ export default function AuthPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:opacity-50"
+            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-pink-500 to-red-500 hover:from-pink-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 disabled:opacity-50 hover:cursor-pointer"
           >
             {loading ? "Loading..." : isSignUp ? "Sign Up" : "Sign In"}
           </button>
@@ -121,7 +121,7 @@ export default function AuthPage() {
         <div className="text-center">
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-pink-600 dark:text-pink-400 hover:text-pink-500 dark:hover:text-pink-300 text-sm"
+            className="text-pink-600 dark:text-pink-400 hover:text-pink-500 dark:hover:text-pink-300 text-sm hover:cursor-pointer"
           >
             {isSignUp
               ? "Already have an account? Sign in"

@@ -10,9 +10,7 @@ export async function getCurrentUserProfile() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   const { data: profile, error } = await supabase
     .from("users")
@@ -35,9 +33,7 @@ export async function updateUserProfile(profileData: Partial<UserProfile>) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return { success: false, error: "User not authenticated" };
-  }
+  if (!user) return { success: false, error: "User not authenticated" };
 
   const { error } = await supabase
     .from("users")
@@ -48,12 +44,13 @@ export async function updateUserProfile(profileData: Partial<UserProfile>) {
       gender: profileData.gender,
       birthdate: profileData.birthdate,
       avatar_url: profileData.avatar_url,
+      preferences: profileData.preferences,
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);
 
   if (error) {
-    console.log(error);
+    console.error("Error updating profile:", error);
     return { success: false, error: error.message };
   }
 
@@ -67,26 +64,20 @@ export async function uploadProfilePhoto(file: File) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return { success: false, error: "User not authenticated" };
-  }
+  if (!user) return { success: false, error: "User not authenticated" };
 
   const fileExt = file.name.split(".").pop();
   const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
   const { error } = await supabase.storage
     .from("profile-photos")
-    .upload(fileName, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
+    .upload(fileName, file, { cacheControl: "3600", upsert: false });
 
-  if (error) {
-    return { success: false, error: error.message };
-  }
+  if (error) return { success: false, error: error.message };
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("profile-photos").getPublicUrl(fileName);
-  return { success: true, url: publicUrl };
+  const { data } = supabase.storage
+    .from("profile-photos")
+    .getPublicUrl(fileName);
+
+  return { success: true, url: data.publicUrl };
 }

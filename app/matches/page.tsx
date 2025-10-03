@@ -52,7 +52,7 @@ export default function MatchesPage() {
   }
 
   function handlePass() {
-    if (currentIndex < potentialMatches.length - 1) {
+    if (currentIndex < potentialMatches.length) {
       setCurrentIndex((prev) => prev + 1);
     }
   }
@@ -118,7 +118,7 @@ export default function MatchesPage() {
               title="Go back"
             >
               <svg
-                className="w-6 h-6 text-gray-700 dark:text-gray-300"
+                className="w-6 h-6 text-gray-700 dark:text-gray-300 hover:cursor-pointer"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
