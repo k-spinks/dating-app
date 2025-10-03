@@ -3,6 +3,32 @@
 import { UserProfile } from "@/app/profile/page";
 import { createClient } from "../supabase/server";
 
+// Haversine formula for distance between two lat/lng points in miles
+function getDistanceFromLatLonInMiles(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  const R = 3958.8; // Radius of the earth in miles
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in miles
+}
+
+// Helper to calculate age from birthdate
+function getAge(birthdate: string): number {
+  const dob = new Date(birthdate);
+  const diff = Date.now() - dob.getTime();
+  return new Date(diff).getUTCFullYear() - 1970;
+}
+
 export async function getPotentialMatches(): Promise<UserProfile[]> {
   const supabase = await createClient();
   const {
@@ -13,19 +39,21 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
     throw new Error("Not authenticated.");
   }
 
+  // Fetch all possible users except current one
   const { data: potentialMatches, error } = await supabase
     .from("users")
     .select("*")
     .neq("id", user.id)
-    .limit(50);
+    .limit(100);
 
   if (error) {
-    throw new Error("failed to fetch potential matches");
+    throw new Error("Failed to fetch potential matches");
   }
 
+  // Fetch current user's preferences
   const { data: userPrefs, error: prefsError } = await supabase
     .from("users")
-    .select("preferences")
+    .select("preferences, location_lat, location_lng")
     .eq("id", user.id)
     .single();
 
@@ -33,17 +61,59 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
     throw new Error("Failed to get user preferences");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentUserPrefs = userPrefs.preferences as any;
-  const genderPreference = currentUserPrefs?.gender_preference || [];
+  const prefs = userPrefs.preferences as {
+    distance: number;
+    age_range: { min: number; max: number };
+    gender_preference: string[];
+  };
+
+  const minAge = prefs?.age_range?.min ?? 18;
+  const maxAge = prefs?.age_range?.max ?? 99;
+  const maxDistance = prefs?.distance ?? null;
+  const genderPreference = prefs?.gender_preference ?? [];
+
+  const userLat = userPrefs.location_lat;
+  const userLng = userPrefs.location_lng;
+
   const filteredMatches =
     potentialMatches
       .filter((match) => {
-        if (!genderPreference || genderPreference.length === 0) {
-          return true;
+        // Gender filter
+        if (
+          genderPreference.length > 0 &&
+          !genderPreference.includes(match.gender)
+        ) {
+          return false;
         }
 
-        return genderPreference.includes(match.gender);
+        // Age filter
+        if (match.birthdate) {
+          const age = getAge(match.birthdate);
+          if (age < minAge || age > maxAge) {
+            return false;
+          }
+        }
+
+        // Distance filter
+        if (
+          maxDistance &&
+          userLat != null &&
+          userLng != null &&
+          match.location_lat != null &&
+          match.location_lng != null
+        ) {
+          const distance = getDistanceFromLatLonInMiles(
+            userLat,
+            userLng,
+            match.location_lat,
+            match.location_lng
+          );
+          if (distance > maxDistance) {
+            return false;
+          }
+        }
+
+        return true;
       })
       .map((match) => ({
         id: match.id,
@@ -55,14 +125,15 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
         bio: match.bio,
         avatar_url: match.avatar_url,
         preferences: match.preferences,
-        location_lat: undefined,
-        location_lng: undefined,
+        location_lat: match.location_lat,
+        location_lng: match.location_lng,
         last_active: new Date().toISOString(),
         is_verified: true,
         is_online: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })) || [];
+
   return filteredMatches;
 }
 
