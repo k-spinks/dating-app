@@ -36,8 +36,6 @@ A real-time, fullstack dating application where users can create profiles, swipe
 
 ## Screenshots / Media
 
-> _(Add relevant screenshots or GIFs of UI in action)_
-
 - **Landing / Home Page**
   ![Landing Page](public/landing_page.png)
 
