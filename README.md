@@ -61,7 +61,7 @@ Building StreamMate strengthened my **full-stack and real-time application skill
 
 ## Screenshots / Media
 
-- **Landing / Home Page**  
+- **Landing / Home Page**
   ![Landing Page](public/landing_page.png)
 
 - **Profile Page**  
